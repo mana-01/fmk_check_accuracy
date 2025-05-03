@@ -1,5 +1,6 @@
 // GASエンドポイントURL（実際のURLに置き換えてください）
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbxVsa3mMSlbpKOVxf6niC94-DLaAPiTDP1L-ZdFtplA22YGvmB4bE2g0j2LHvHzvWw/exec';
+// const GAS_URL = 'https://script.google.com/macros/s/AKfycbxVsa3mMSlbpKOVxf6niC94-DLaAPiTDP1L-ZdFtplA22YGvmB4bE2g0j2LHvHzvWw/exec';
+const GAS_URL = 'https://fkm-checkup.netlify.app/.netlify/functions/proxy-gas';
 
 // CORSエラー緩和のため、リクエストを少し工夫します
 const CORS_PROXY = ''; // プロキシを使用せず直接アクセス
