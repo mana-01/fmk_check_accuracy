@@ -1,30 +1,52 @@
 // netlify/functions/proxy-gas.js
-const fetch = require('node-fetch')
+
+/**
+ * Proxy to Google Apps Script endpoint to avoid CORS in the browser.
+ * Netlify Functions runtime (Node 18+) provides global fetch, so no need for node-fetch.
+ */
 
 exports.handler = async (event) => {
-  const GAS_URL = 'https://script.google.com/macros/s/AKfycbz1BoWmOF2wpk1lnrCQ_aD4wKAtLWKMyHdTAH1Wb86tr7iWuaY4WxUUf8ccqzxEFuUn/exec'
+  const GAS_URL = 'https://script.google.com/macros/s/AKfycbxVsa3mMSlbpKOVxf6niC94-DLaAPiTDP1L-ZdFtplA22YGvmB4bE2g0j2LHvHzvWw/exec';
 
+  // Allow both GET (data fetch) and POST (data save) through this single endpoint
   if (event.httpMethod === 'GET') {
-    const { action, batch } = event.queryStringParameters || {}
-    const url = `${GAS_URL}?action=${action}&batch=${batch}`
-    const resp = await fetch(url)
-    const text = await resp.text()
+    // e.g. /.netlify/functions/proxy-gas?action=getData&batch=1&sheet=1
+    const { action, batch, sheet } = event.queryStringParameters || {};
+    const url = new URL(GAS_URL);
+    if (action) url.searchParams.set('action', action);
+    if (batch)  url.searchParams.set('batch', batch);
+    if (sheet)  url.searchParams.set('sheet',  sheet);
+
+    const resp = await fetch(url.toString());
+    const body = await resp.text();
+
     return {
       statusCode: 200,
       headers: { 'Access-Control-Allow-Origin': '*' },
-      body: text
-    }
-  } else {
+      body
+    };
+  }
+
+  if (event.httpMethod === 'POST') {
+    // e.g. fetch('/.netlify/functions/proxy-gas', { method:'POST', body: JSON.stringify({...}) })
     const resp = await fetch(GAS_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: event.body
-    })
-    const text = await resp.text()
+    });
+    const body = await resp.text();
+
     return {
       statusCode: 200,
       headers: { 'Access-Control-Allow-Origin': '*' },
-      body: text
-    }
+      body
+    };
   }
-}
+
+  // Reject other methods
+  return {
+    statusCode: 405,
+    headers: { 'Allow': 'GET, POST' },
+    body: 'Method Not Allowed'
+  };
+};
