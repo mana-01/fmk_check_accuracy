@@ -27,6 +27,69 @@ body {
     padding: 20px;
 }
 
+/* ★【ローディング用プログレスバー】★ */
+#loader {
+  background: white;
+  padding: 40px 20px;
+  border-radius: 10px;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  text-align: center;
+  font-size: 1.5rem;
+  color: var(--main-color);
+}
+.loader-progress-container {               /* ★ */
+  width: 100%;
+  height: 30px;
+  background-color: #ddd;
+  border-radius: 15px;
+  overflow: hidden;
+  margin-top: 20px;
+  position: relative;
+}
+.loader-progress-bar {                     /* ★ */
+  height: 100%;
+  background-color: var(--main-color);
+  transition: width 0.3s ease, background-color 0.3s ease;
+  width: 0%;
+}
+.loader-progress-text {                    /* ★ */
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: #333;
+  font-weight: bold;
+  z-index: 1;
+}
+
+/* ★【データ進捗用プログレスバー】★ */
+.data-progress-container {                 /* ★ */
+  width: 100%;
+  height: 8px;
+  background-color: #eee;
+  border-radius: 4px;
+  margin: 16px 0;
+  position: relative;
+}
+.data-progress-bar {                       /* ★ */
+  height: 100%;
+  background-color: var(--main-color);
+  width: 0%;
+  transition: width 0.3s ease;
+}
+.data-progress-text {                      /* ★ */
+  position: absolute;
+  top: -20px;
+  right: 0;
+  font-size: 0.9rem;
+  color: #333;
+}
+
+/* ★【修正】メインコンテンツは初期非表示 */ 
+#mainContent {
+  display: none;
+}
+
 .progress-container {
     width: 100%;
     height: 30px;
