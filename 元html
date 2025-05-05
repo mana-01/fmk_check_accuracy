@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>スワイプ診断精度チェック！</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- ローディング用画面 -->
+        <div id="loader">
+            データを読み込み中…
+            <div class="loader-progress-container">
+                <div class="loader-progress-bar" id="loaderProgressBar"></div>
+                <div class="loader-progress-text" id="loaderProgressText">0%</div>
+            </div>
+        </div>
+
+        <!-- メインコンテンツ（初期非表示） -->
+        <div id="mainContent" style="display: none;">
+            <!-- データ進捗用プログレスバー -->
+            <div class="data-progress-container">
+                <div class="data-progress-bar" id="dataProgressBar"></div>
+                <div class="data-progress-text" id="dataProgressText">0/100</div>
+            </div>
+
+            <!-- メインカード画面 -->
+            <div class="main-screen" id="mainScreen">
+                <div class="card" id="card">
+                    <img id="productImage" src="" alt="商品画像">
+                    <div class="card-info">
+                        <h2 id="productName"></h2>
+                        <p>パーソナルカラー: <span id="personalColor"></span></p>
+                        <p>骨格: <span id="bodyType"></span></p>
+                    </div>
+                </div>
+                <div class="buttons">
+                    <button class="dislike" id="dislikeBtn">×</button>
+                    <button class="like" id="likeBtn">👍</button>
+                </div>
+            </div>
+
+            <!-- 修正入力画面 -->
+            <div class="edit-screen hidden" id="editScreen">
+                <h2>どう間違っていた？</h2>
+                <select id="errorType">
+                    <option value="">選択してください</option>
+                    <option value="color">パーソナルカラーのみ間違っていた</option>
+                    <option value="body">骨格のみ間違っていた</option>
+                    <option value="both">両方間違っていた</option>
+                </select>
+
+                <div class="correction-section" id="colorCorrection">
+                    <h3>カラー修正：</h3>
+                    <label><input type="checkbox" name="color" value="スプリング"> スプリング</label>
+                    <label><input type="checkbox" name="color" value="サマー"> サマー</label>
+                    <label><input type="checkbox" name="color" value="オータム"> オータム</label>
+                    <label><input type="checkbox" name="color" value="ウィンター"> ウィンター</label>
+                </div>
+
+                <div class="correction-section" id="bodyCorrection">
+                    <h3>骨格修正：</h3>
+                    <label><input type="checkbox" name="body" value="骨格ストレート"> 骨格ストレート</label>
+                    <label><input type="checkbox" name="body" value="骨格ナチュラル"> 骨格ナチュラル</label>
+                    <label><input type="checkbox" name="body" value="骨格ウェーブ"> 骨格ウェーブ</label>
+                </div>
+
+                <button id="submitCorrection">修正を送信</button>
+            </div>
+
+            <!-- 完了画面 -->
+            <div class="complete-screen hidden" id="completeScreen">
+                <h2>100件完了しました！</h2>
+                <p>次の100件を行いますか？</p>
+                <button id="continueBtn">続ける</button>
+                <button id="finishBtn">終了</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
