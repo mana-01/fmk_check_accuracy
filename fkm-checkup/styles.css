@@ -274,3 +274,15 @@ select {
 #editScreen h2 {
     font-size: 1em; /* お好みのサイズに調整してください */
 }
+
+.buttons-group {
+  text-align: center;
+  margin-top: 20px;
+}
+
+.like-dislike-row {
+  display: flex;
+  justify-content: center;
+  gap: 40px; /* ボタン間の余白 */
+  margin-bottom: 20px;
+}
