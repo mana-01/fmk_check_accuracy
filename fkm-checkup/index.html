@@ -33,12 +33,14 @@
                         <h2 id="productName"></h2>
                         <p>パーソナルカラー: <span id="personalColor"></span></p>
                         <p>骨格: <span id="bodyType"></span></p>
+                        <p><a id="productLink" href="#" target="_blank" class="product-link">商品詳細はこちら</a></p>
                     </div>
                 </div>
-                <div class="buttons">
+                <div class="buttons" id="actionButtons">
                     <button class="dislike" id="dislikeBtn">×</button>
                     <button class="like" id="likeBtn">👍</button>
                 </div>
+                <button class="skip" id="skipBtn">スキップ</button>
             </div>
 
             <!-- 修正入力画面 -->
@@ -67,6 +69,26 @@
                 </div>
 
                 <button id="submitCorrection">修正を送信</button>
+            </div>
+
+            <!-- 骨格統一確認モード -->
+            <div id="unifyScreen" class="hidden">
+                <div class="card unify-card">
+                    <img id="unifyImage" src="" alt="商品画像">
+                    <div class="card-info">
+                        <h2 id="unifyName"></h2>
+                        <p>骨格タイプ: <span id="unifyBodyType"></span></p>
+                    </div>
+                </div>
+                <div class="buttons">
+                    <button id="unifyPrevBtn" class="dislike">←</button>
+                    <button id="unifyNextBtn" class="like">→</button>
+                </div>
+                <p style="text-align:center;">この骨格タイプで統一しますか？</p>
+                <div class="buttons">
+                    <button id="unifyYesBtn" class="skip">Yes</button>
+                    <button id="unifySkipBtn" class="skip">スキップ</button>
+                </div>
             </div>
 
             <!-- 完了画面 -->

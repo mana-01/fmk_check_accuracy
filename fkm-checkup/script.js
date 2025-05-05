@@ -14,8 +14,10 @@ const productImage      = document.getElementById('productImage');
 const productName       = document.getElementById('productName');
 const personalColor     = document.getElementById('personalColor');
 const bodyType          = document.getElementById('bodyType');
+const productLink       = document.getElementById('productLink');
 const likeBtn           = document.getElementById('likeBtn');
 const dislikeBtn        = document.getElementById('dislikeBtn');
+const skipBtn           = document.getElementById('skipBtn');
 const editScreen        = document.getElementById('editScreen');
 const completeScreen    = document.getElementById('completeScreen');
 const errorType         = document.getElementById('errorType');
@@ -35,6 +37,7 @@ const dataProgressText   = document.getElementById('dataProgressText');
 // イベントリスナー
 likeBtn.addEventListener('click', handleLike);
 dislikeBtn.addEventListener('click', handleDislike);
+skipBtn.addEventListener('click', handleSkip);
 submitCorrection.addEventListener('click', async () => await submitCorrectionData());
 continueBtn.addEventListener('click', loadNextBatch);
 finishBtn.addEventListener('click', () => window.close());
@@ -77,7 +80,7 @@ async function initialize() {
 
 // データ読み込み
 async function loadData() {
-  const url = `${GAS_URL}?action=getData&batch=${currentBatch}`;
+  const url = `${GAS_URL}?batch=${currentBatch}`;
   const response = await fetch(url, { method: 'GET', mode: 'cors', headers: { 'Accept': 'application/json' } });
   if (!response.ok) throw new Error(`HTTP ${response.status}`);
   const json = await response.json();
@@ -98,7 +101,10 @@ function displayCurrentCard() {
   productName.textContent     = item.商品名     || '';
   personalColor.textContent   = item.パーソナルカラー || '';
   bodyType.textContent        = item.骨格タイプ   || '';
+  productLink.href = item.商品詳細URL || '#';
   updateProgress();
+  document.getElementById('mainScreen').classList.remove('hidden');
+  editScreen.classList.add('hidden');
 }
 
 // プログレスバー更新
@@ -121,7 +127,15 @@ function handleDislike() {
   document.getElementById('mainScreen').classList.add('hidden');
   editScreen.classList.remove('hidden');
   errorType.value = '';
+  colorCorrection.style.display = 'none';
+  bodyCorrection.style.display = 'none';
   document.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
+}
+
+// Skip
+function handleSkip() {
+  currentIndex++;
+  displayCurrentCard();
 }
 
 // エラータイプ変更

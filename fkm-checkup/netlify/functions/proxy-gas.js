@@ -6,7 +6,7 @@
  */
 
 exports.handler = async (event) => {
-  const GAS_URL = 'https://script.google.com/macros/s/AKfycby73ipM5he7CANzq9ByqFzm_FmhEJBhNuWXMBHML4QeL_pyQF1CPRnH3lA8_JLXrwJN/exec';
+  const GAS_URL = 'https://script.google.com/macros/s/AKfycbwNFEK97xLkbcsMvzyatemReZBckbf6_QEVFsps83IRrtKT0FOeAdgfWrWsb0FKpDg/exec';
 
   // Allow both GET (data fetch) and POST (data save) through this single endpoint
   if (event.httpMethod === 'GET') {

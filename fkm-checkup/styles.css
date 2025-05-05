@@ -128,7 +128,8 @@ body {
 .card img {
     width: 100%;
     height: 300px;
-    object-fit: cover;
+    object-fit: contain;
+    background-color: white;
 }
 
 .card-info {
@@ -143,6 +144,12 @@ body {
 .card-info p {
     margin: 5px 0;
     color: #666;
+}
+
+.product-link {
+    color: var(--main-color);
+    text-decoration: underline;
+    font-size: 0.9rem;
 }
 
 .buttons {
@@ -178,6 +185,18 @@ body {
     transform: scale(1.1);
 }
 
+.skip {
+    background-color: var(--color-gray);
+    color: white;
+    border: none;
+    padding: 10px 30px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+    display: block;
+    margin: 0 auto 20px auto;
+}
+
 .hidden {
     display: none;
 }
@@ -203,6 +222,7 @@ select {
 .correction-section {
     margin: 20px 0;
     text-align: left;
+    display: none;
 }
 
 .correction-section h3 {
@@ -220,7 +240,7 @@ select {
     margin-right: 10px;
 }
 
-#submitCorrection, #continueBtn, #finishBtn {
+#submitCorrection, #continueBtn, #finishBtn, #unifyYesBtn, #unifySkipBtn {
     background-color: var(--main-color);
     color: white;
     border: none;
@@ -231,6 +251,17 @@ select {
     margin: 10px;
 }
 
-#submitCorrection:hover, #continueBtn:hover, #finishBtn:hover {
+#submitCorrection:hover,
+#continueBtn:hover,
+#finishBtn:hover,
+#unifyYesBtn:hover,
+#unifySkipBtn:hover {
     background-color: #5a8bd1;
+}
+
+.unify-card img {
+    width: 100%;
+    max-height: 300px;
+    object-fit: contain;
+    background-color: white;
 }
