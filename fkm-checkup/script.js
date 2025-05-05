@@ -26,6 +26,7 @@ const bodyCorrection    = document.getElementById('bodyCorrection');
 const submitCorrection  = document.getElementById('submitCorrection');
 const continueBtn       = document.getElementById('continueBtn');
 const finishBtn         = document.getElementById('finishBtn');
+const actionButtons     = document.getElementById('actionButtons');
 
 // ★ ローディング用プログレスバー
 const loaderProgressBar  = document.getElementById('loaderProgressBar');
@@ -103,8 +104,10 @@ function displayCurrentCard() {
   bodyType.textContent        = item.骨格タイプ   || '';
   productLink.href = item.商品詳細URL || '#';
   updateProgress();
+
   document.getElementById('mainScreen').classList.remove('hidden');
   editScreen.classList.add('hidden');
+  actionButtons.classList.remove('hidden');
 }
 
 // プログレスバー更新
@@ -122,10 +125,10 @@ async function handleLike() {
   displayCurrentCard();
 }
 
-// Dislike
+// Dislike（画面を切り替えず下に修正フォームを展開）
 function handleDislike() {
-  document.getElementById('mainScreen').classList.add('hidden');
   editScreen.classList.remove('hidden');
+  actionButtons.classList.add('hidden');
   errorType.value = '';
   colorCorrection.style.display = 'none';
   bodyCorrection.style.display = 'none';
@@ -158,8 +161,9 @@ async function submitCorrectionData() {
   const item = currentData[currentIndex];
   await saveData(item.rowIndex, correctness, colors.join(','), bodies.join(','));
   currentIndex++;
+
   editScreen.classList.add('hidden');
-  document.getElementById('mainScreen').classList.remove('hidden');
+  actionButtons.classList.remove('hidden');
   displayCurrentCard();
 }
 
