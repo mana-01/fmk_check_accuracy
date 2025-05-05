@@ -102,7 +102,7 @@ function displayCurrentCard() {
   productName.textContent     = item.商品名     || '';
   personalColor.textContent   = item.パーソナルカラー || '';
   bodyType.textContent        = item.骨格タイプ   || '';
-  productLink.href = item.商品詳細URL || '#';
+  productLink.href = item.商品ページURL || '#';
   updateProgress();
 
   document.getElementById('mainScreen').classList.remove('hidden');
