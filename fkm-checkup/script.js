@@ -82,11 +82,16 @@ async function initialize() {
 // データ読み込み
 async function loadData() {
   const url = `${GAS_URL}?batch=${currentBatch}`;
-  const response = await fetch(url, { method: 'GET', mode: 'cors', headers: { 'Accept': 'application/json' } });
+  const response = await fetch(url, {
+    method: 'GET',
+    mode: 'cors',
+    headers: { 'Accept': 'application/json' }
+  });
   if (!response.ok) throw new Error(`HTTP ${response.status}`);
   const json = await response.json();
   if (json.error) throw new Error(json.error);
-  currentData = json.data;
+  // sheet 番号を各 item に追加
+  currentData = json.data.map(item => ({ ...item, sheet: json.sheet }));
   currentIndex = 0;
   updateProgress();
 }
@@ -120,7 +125,7 @@ function updateProgress() {
 // Like
 async function handleLike() {
   const item = currentData[currentIndex];
-  await saveData(item.rowIndex, '両方正', '', '');
+  await saveData(item.rowIndex, '両方正', '', '', item.sheet);
   currentIndex++;
   displayCurrentCard();
 }
@@ -155,22 +160,45 @@ async function submitCorrectionData() {
   if (!sel) return alert('エラータイプを選択してください');
   const colors = Array.from(document.querySelectorAll('input[name="color"]:checked')).map(cb => cb.value);
   const bodies = Array.from(document.querySelectorAll('input[name="body"]:checked')).map(cb => cb.value);
-  let correctness = sel === 'color' ? 'パーソナルカラーのみ間違っていた'
-                  : sel === 'body'  ? '骨格のみ間違っていた'
-                  : '両方間違っていた';
+  const correctness = sel === 'color' ? 'パーソナルカラーのみ間違っていた'
+                   : sel === 'body'  ? '骨格のみ間違っていた'
+                   : '両方間違っていた';
   const item = currentData[currentIndex];
-  await saveData(item.rowIndex, correctness, colors.join(','), bodies.join(','));
+  await saveData(item.rowIndex, correctness, colors.join(','), bodies.join(','), item.sheet);
+  // 骨格の修正がある場合、一括更新
+  if (bodies.length > 0) {
+    await fetch(GAS_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'bulkUpdateBodyType',
+        商品名: item.商品名,
+        統一骨格: bodies[0]
+      })
+    });
+  }
   currentIndex++;
-
   editScreen.classList.add('hidden');
-  actionButtons.classList.remove('hidden');
+  document.getElementById('mainScreen').classList.remove('hidden');
   displayCurrentCard();
 }
 
 // データ保存
-async function saveData(rowIndex, correctness, colorCorrections, bodyCorrections) {
-  const payload = { action: 'saveData', rowIndex, 正否: correctness, 修正カラー: colorCorrections, 修正骨格: bodyCorrections };
-  const resp = await fetch(GAS_URL, { method: 'POST', mode: 'cors', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+async function saveData(rowIndex, correctness, colorCorrections, bodyCorrections, sheet) {
+  const payload = {
+    action: 'saveData',
+    rowIndex,
+    sheet,
+    正否: correctness,
+    修正カラー: colorCorrections,
+    修正骨格: bodyCorrections
+  };
+  const resp = await fetch(GAS_URL, {
+    method: 'POST',
+    mode: 'cors',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
   const result = await resp.json();
   if (result.error) throw new Error(result.error);
   return result;
