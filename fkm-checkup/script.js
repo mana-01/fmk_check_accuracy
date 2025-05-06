@@ -61,20 +61,19 @@ function fakeLoading() {
   });
 }
 
-// 初期化
+// 初期化（② fakeLoading と loadData の並列実行）
 async function initialize() {
-  // ローディング表示
   loader.style.display      = 'block';
   mainContent.style.display = 'none';
 
-  // 疑似ローディング（不要なら外してください）
-  await fakeLoading();
+  // ✅ fakeLoadingとloadDataを並列実行（体感改善）
+  await Promise.all([
+    fakeLoading(),
+    loadData()
+  ]);
 
-  // データ取得
-  await loadData();
   displayCurrentCard();
 
-  // ローディング解除
   loader.style.display      = 'none';
   mainContent.style.display = 'block';
 }
@@ -158,6 +157,7 @@ function handleErrorTypeChange() {
 async function submitCorrectionData() {
   const sel = errorType.value;
   if (!sel) return alert('エラータイプを選択してください');
+
   const colors = Array.from(document.querySelectorAll('input[name="color"]:checked')).map(cb => cb.value);
   const bodies = Array.from(document.querySelectorAll('input[name="body"]:checked')).map(cb => cb.value);
   const correctness = sel === 'color' ? 'パーソナルカラーのみ間違っていた'
@@ -165,8 +165,9 @@ async function submitCorrectionData() {
                    : '両方間違っていた';
   const item = currentData[currentIndex];
   await saveData(item.rowIndex, correctness, colors.join(','), bodies.join(','), item.sheet);
-  // 骨格の修正がある場合、一括更新
-  if (bodies.length > 0) {
+
+  // 骨格の修正が1つだけある場合のみ一括更新
+  if (bodies.length === 1) {
     await fetch(GAS_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -177,6 +178,7 @@ async function submitCorrectionData() {
       })
     });
   }
+
   currentIndex++;
   editScreen.classList.add('hidden');
   document.getElementById('mainScreen').classList.remove('hidden');
