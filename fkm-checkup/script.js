@@ -1,10 +1,12 @@
 // GASエンドポイントURL
-const GAS_URL = 'https://fkm-checkup.netlify.app/.netlify/functions/proxy-gas';
+const GAS_URL = 'https://fkm-checkup.netlify.app/.netlify/functions/proxy-gas'; 
 
 // UI 状態
 let currentIndex = 0;
 let currentData = [];
 let currentBatch = 1;
+let currentSheet = 1; // ★ 修正：シート番号をグローバルで持つ
+let userName = 'unknown'; // ★ 追加：担当者名を保持する変数
 
 // DOM要素の取得
 const loader            = document.getElementById('loader');
@@ -35,6 +37,13 @@ const loaderProgressText = document.getElementById('loaderProgressText');
 const dataProgressBar    = document.getElementById('dataProgressBar');
 const dataProgressText   = document.getElementById('dataProgressText');
 
+
+// ★ 追加：URLからパラメータを取得する関数
+function initializeParameters() {
+  const urlParams = new URLSearchParams(window.location.search);
+  userName = urlParams.get('name') || 'unknown'; // ?name=... を取得
+}
+
 // イベントリスナー
 likeBtn.addEventListener('click', handleLike);
 dislikeBtn.addEventListener('click', handleDislike);
@@ -63,7 +72,8 @@ function fakeLoading() {
 
 // 初期化（② fakeLoading と loadData の並列実行）
 async function initialize() {
-  loader.style.display      = 'block';
+  initializeParameters(); // ★ 追加：パラメータを先に読み込む
+  loader.style.display    = 'block';
   mainContent.style.display = 'none';
 
   // ✅ fakeLoadingとloadDataを並列実行（体感改善）
@@ -72,15 +82,19 @@ async function initialize() {
     loadData()
   ]);
 
-  displayCurrentCard();
+  // ★ 修正：loadDataが完了画面を表示した場合、displayCurrentCardは呼ばない
+  if (currentData.length > 0) {
+    displayCurrentCard();
+  }
 
-  loader.style.display      = 'none';
+  loader.style.display    = 'none';
   mainContent.style.display = 'block';
 }
 
 // データ読み込み
 async function loadData() {
-  const url = `${GAS_URL}?batch=${currentBatch}`;
+  // ★ 修正：現在のシート番号もパラメータとして送る
+  const url = `${GAS_URL}?batch=${currentBatch}&sheet=${currentSheet}`;
   const response = await fetch(url, {
     method: 'GET',
     mode: 'cors',
@@ -89,23 +103,31 @@ async function loadData() {
   if (!response.ok) throw new Error(`HTTP ${response.status}`);
   const json = await response.json();
   if (json.error) throw new Error(json.error);
+  
   // sheet 番号を各 item に追加
   currentData = json.data.map(item => ({ ...item, sheet: json.sheet }));
+  currentSheet = json.sheet; // ★ 修正：GASから返された現在のシート番号を更新
   currentIndex = 0;
+
+  // ★ 修正：もしデータが0件なら、(全完了)完了画面に飛ばす
+  if (currentData.length === 0) {
+    showCompleteScreen(true); // 全完了フラグを立てる
+  }
+  
   updateProgress();
 }
 
 // カード表示
 function displayCurrentCard() {
   if (currentIndex >= currentData.length) {
-    showCompleteScreen();
+    showCompleteScreen(false); // 通常のバッチ完了
     return;
   }
   const item = currentData[currentIndex];
-  productImage.src       = item.商品画像URL || '';
-  productName.textContent     = item.商品名     || '';
+  productImage.src        = item.商品画像URL || '';
+  productName.textContent     = item.商品名      || '';
   personalColor.textContent   = item.パーソナルカラー || '';
-  bodyType.textContent        = item.骨格タイプ   || '';
+  bodyType.textContent        = item.骨格タイプ      || '';
   productLink.href = item.商品ページURL || '#';
   updateProgress();
 
@@ -116,6 +138,12 @@ function displayCurrentCard() {
 
 // プログレスバー更新
 function updateProgress() {
+  // ★ 修正：データ長が0の時にエラーにならないようにする
+  if (currentData.length === 0) {
+    dataProgressBar.style.width  = `0%`;
+    dataProgressText.textContent = `0/0`;
+    return;
+  }
   const pct = (currentIndex / currentData.length) * 100;
   dataProgressBar.style.width  = `${pct}%`;
   dataProgressText.textContent = `${currentIndex}/${currentData.length}`;
@@ -124,7 +152,8 @@ function updateProgress() {
 // Like
 async function handleLike() {
   const item = currentData[currentIndex];
-  await saveData(item.rowIndex, '両方正', '', '', item.sheet);
+  // ★ 修正：userName を引数に追加して saveData を呼ぶ
+  await saveData(item.rowIndex, '両方正', '', '', item.sheet, userName);
   currentIndex++;
   displayCurrentCard();
 }
@@ -156,15 +185,17 @@ function handleErrorTypeChange() {
 // 修正送信
 async function submitCorrectionData() {
   const sel = errorType.value;
-  if (!sel) return alert('エラータイプを選択してください');
+  if (!sel) return alert('エラータイプを選択してください'); // ★ alertの代わりにカスタムUI推奨
 
   const colors = Array.from(document.querySelectorAll('input[name="color"]:checked')).map(cb => cb.value);
   const bodies = Array.from(document.querySelectorAll('input[name="body"]:checked')).map(cb => cb.value);
   const correctness = sel === 'color' ? 'パーソナルカラーのみ間違っていた'
-                   : sel === 'body'  ? '骨格のみ間違っていた'
-                   : '両方間違っていた';
+                    : sel === 'body'  ? '骨格のみ間違っていた'
+                    : '両方間違っていた';
   const item = currentData[currentIndex];
-  await saveData(item.rowIndex, correctness, colors.join(','), bodies.join(','), item.sheet);
+  
+  // ★ 修正：userName を引数に追加して saveData を呼ぶ
+  await saveData(item.rowIndex, correctness, colors.join(','), bodies.join(','), item.sheet, userName);
 
   // 骨格の修正が1つだけある場合のみ一括更新
   if (bodies.length === 1) {
@@ -186,14 +217,16 @@ async function submitCorrectionData() {
 }
 
 // データ保存
-async function saveData(rowIndex, correctness, colorCorrections, bodyCorrections, sheet) {
+// ★ 修正：userName を引数に追加
+async function saveData(rowIndex, correctness, colorCorrections, bodyCorrections, sheet, userName) {
   const payload = {
     action: 'saveData',
     rowIndex,
     sheet,
     正否: correctness,
     修正カラー: colorCorrections,
-    修正骨格: bodyCorrections
+    修正骨格: bodyCorrections,
+    userName: userName // ★ 追加：ペイロードに担当者名を含める
   };
   const resp = await fetch(GAS_URL, {
     method: 'POST',
@@ -207,7 +240,19 @@ async function saveData(rowIndex, correctness, colorCorrections, bodyCorrections
 }
 
 // 完了画面
-function showCompleteScreen() {
+// ★ 修正：全完了かどうかでメッセージを変える
+function showCompleteScreen(isAllDone) {
+  if (isAllDone) {
+    completeScreen.querySelector('h2').textContent = '全シート完了！';
+    completeScreen.querySelector('p').textContent = 'お疲れ様でした。';
+    continueBtn.style.display = 'none'; // 続けるボタンを消す
+    finishBtn.textContent = '終了';
+  } else {
+    completeScreen.querySelector('h2').textContent = '100件完了しました！';
+    completeScreen.querySelector('p').textContent = '次の100件を行いますか？';
+    continueBtn.style.display = 'inline-block';
+    finishBtn.textContent = '終了';
+  }
   document.getElementById('mainScreen').classList.add('hidden');
   completeScreen.classList.remove('hidden');
 }
@@ -215,11 +260,257 @@ function showCompleteScreen() {
 // 次バッチ
 async function loadNextBatch() {
   currentBatch++;
+  // ★ 修正：シート番号は変えずに次のバッチをリクエストする
+  // (GAS側がシートをまたぐか判断するため)
   completeScreen.classList.add('hidden');
-  document.getElementById('mainScreen').classList.remove('hidden');
-  await loadData();
-  displayCurrentCard();
+  
+  // ★ 修正：ロードする前にローダーを再表示
+  loader.style.display = 'block';
+  mainContent.style.display = 'none';
+  
+  await loadData(); // 次のバッチを読み込む
+  
+  // ★ 修正：loadDataが完了画面を表示した場合、displayCurrentCardは呼ばない
+  if (currentData.length > 0) {
+    displayCurrentCard(); // 最初のカードを表示
+  }
+  
+  // ★ 修正：ロード完了後にローダーを非表示
+  loader.style.display = 'none';
+  mainContent.style.display = 'block';
 }
 
 // アプリ起動
 window.addEventListener('load', initialize);
+
+
+
+
+
+
+
+// // GASエンドポイントURL
+// const GAS_URL = 'https://fkm-checkup.netlify.app/.netlify/functions/proxy-gas';
+
+// // UI 状態
+// let currentIndex = 0;
+// let currentData = [];
+// let currentBatch = 1;
+
+// // DOM要素の取得
+// const loader            = document.getElementById('loader');
+// const mainContent       = document.getElementById('mainContent');
+// const card              = document.getElementById('card');
+// const productImage      = document.getElementById('productImage');
+// const productName       = document.getElementById('productName');
+// const personalColor     = document.getElementById('personalColor');
+// const bodyType          = document.getElementById('bodyType');
+// const productLink       = document.getElementById('productLink');
+// const likeBtn           = document.getElementById('likeBtn');
+// const dislikeBtn        = document.getElementById('dislikeBtn');
+// const skipBtn           = document.getElementById('skipBtn');
+// const editScreen        = document.getElementById('editScreen');
+// const completeScreen    = document.getElementById('completeScreen');
+// const errorType         = document.getElementById('errorType');
+// const colorCorrection   = document.getElementById('colorCorrection');
+// const bodyCorrection    = document.getElementById('bodyCorrection');
+// const submitCorrection  = document.getElementById('submitCorrection');
+// const continueBtn       = document.getElementById('continueBtn');
+// const finishBtn         = document.getElementById('finishBtn');
+// const actionButtons     = document.getElementById('actionButtons');
+
+// // ★ ローディング用プログレスバー
+// const loaderProgressBar  = document.getElementById('loaderProgressBar');
+// const loaderProgressText = document.getElementById('loaderProgressText');
+// // ★ データ進捗用プログレスバー
+// const dataProgressBar    = document.getElementById('dataProgressBar');
+// const dataProgressText   = document.getElementById('dataProgressText');
+
+// // イベントリスナー
+// likeBtn.addEventListener('click', handleLike);
+// dislikeBtn.addEventListener('click', handleDislike);
+// skipBtn.addEventListener('click', handleSkip);
+// submitCorrection.addEventListener('click', async () => await submitCorrectionData());
+// continueBtn.addEventListener('click', loadNextBatch);
+// finishBtn.addEventListener('click', () => window.close());
+// errorType.addEventListener('change', handleErrorTypeChange);
+
+// // 疑似ローディング（任意）
+// function fakeLoading() {
+//   return new Promise(resolve => {
+//     let sec = 0;
+//     const timer = setInterval(() => {
+//       sec++;
+//       const pct = (sec / 5) * 100;
+//       loaderProgressBar.style.width  = `${pct}%`;
+//       loaderProgressText.textContent = `${Math.round(pct)}%`;
+//       if (sec >= 5) {
+//         clearInterval(timer);
+//         resolve();
+//       }
+//     }, 1000);
+//   });
+// }
+
+// // 初期化（② fakeLoading と loadData の並列実行）
+// async function initialize() {
+//   loader.style.display      = 'block';
+//   mainContent.style.display = 'none';
+
+//   // ✅ fakeLoadingとloadDataを並列実行（体感改善）
+//   await Promise.all([
+//     fakeLoading(),
+//     loadData()
+//   ]);
+
+//   displayCurrentCard();
+
+//   loader.style.display      = 'none';
+//   mainContent.style.display = 'block';
+// }
+
+// // データ読み込み
+// async function loadData() {
+//   const url = `${GAS_URL}?batch=${currentBatch}`;
+//   const response = await fetch(url, {
+//     method: 'GET',
+//     mode: 'cors',
+//     headers: { 'Accept': 'application/json' }
+//   });
+//   if (!response.ok) throw new Error(`HTTP ${response.status}`);
+//   const json = await response.json();
+//   if (json.error) throw new Error(json.error);
+//   // sheet 番号を各 item に追加
+//   currentData = json.data.map(item => ({ ...item, sheet: json.sheet }));
+//   currentIndex = 0;
+//   updateProgress();
+// }
+
+// // カード表示
+// function displayCurrentCard() {
+//   if (currentIndex >= currentData.length) {
+//     showCompleteScreen();
+//     return;
+//   }
+//   const item = currentData[currentIndex];
+//   productImage.src       = item.商品画像URL || '';
+//   productName.textContent     = item.商品名     || '';
+//   personalColor.textContent   = item.パーソナルカラー || '';
+//   bodyType.textContent        = item.骨格タイプ   || '';
+//   productLink.href = item.商品ページURL || '#';
+//   updateProgress();
+
+//   document.getElementById('mainScreen').classList.remove('hidden');
+//   editScreen.classList.add('hidden');
+//   actionButtons.classList.remove('hidden');
+// }
+
+// // プログレスバー更新
+// function updateProgress() {
+//   const pct = (currentIndex / currentData.length) * 100;
+//   dataProgressBar.style.width  = `${pct}%`;
+//   dataProgressText.textContent = `${currentIndex}/${currentData.length}`;
+// }
+
+// // Like
+// async function handleLike() {
+//   const item = currentData[currentIndex];
+//   await saveData(item.rowIndex, '両方正', '', '', item.sheet);
+//   currentIndex++;
+//   displayCurrentCard();
+// }
+
+// // Dislike（画面を切り替えず下に修正フォームを展開）
+// function handleDislike() {
+//   editScreen.classList.remove('hidden');
+//   actionButtons.classList.add('hidden');
+//   errorType.value = '';
+//   colorCorrection.style.display = 'none';
+//   bodyCorrection.style.display = 'none';
+//   document.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
+// }
+
+// // Skip
+// function handleSkip() {
+//   currentIndex++;
+//   displayCurrentCard();
+// }
+
+// // エラータイプ変更
+// function handleErrorTypeChange() {
+//   colorCorrection.style.display = 'none';
+//   bodyCorrection.style.display  = 'none';
+//   if (errorType.value === 'color' || errorType.value === 'both') colorCorrection.style.display = 'block';
+//   if (errorType.value === 'body'  || errorType.value === 'both') bodyCorrection.style.display  = 'block';
+// }
+
+// // 修正送信
+// async function submitCorrectionData() {
+//   const sel = errorType.value;
+//   if (!sel) return alert('エラータイプを選択してください');
+
+//   const colors = Array.from(document.querySelectorAll('input[name="color"]:checked')).map(cb => cb.value);
+//   const bodies = Array.from(document.querySelectorAll('input[name="body"]:checked')).map(cb => cb.value);
+//   const correctness = sel === 'color' ? 'パーソナルカラーのみ間違っていた'
+//                    : sel === 'body'  ? '骨格のみ間違っていた'
+//                    : '両方間違っていた';
+//   const item = currentData[currentIndex];
+//   await saveData(item.rowIndex, correctness, colors.join(','), bodies.join(','), item.sheet);
+
+//   // 骨格の修正が1つだけある場合のみ一括更新
+//   if (bodies.length === 1) {
+//     await fetch(GAS_URL, {
+//       method: 'POST',
+//       headers: { 'Content-Type': 'application/json' },
+//       body: JSON.stringify({
+//         action: 'bulkUpdateBodyType',
+//         商品名: item.商品名,
+//         統一骨格: bodies[0]
+//       })
+//     });
+//   }
+
+//   currentIndex++;
+//   editScreen.classList.add('hidden');
+//   document.getElementById('mainScreen').classList.remove('hidden');
+//   displayCurrentCard();
+// }
+
+// // データ保存
+// async function saveData(rowIndex, correctness, colorCorrections, bodyCorrections, sheet) {
+//   const payload = {
+//     action: 'saveData',
+//     rowIndex,
+//     sheet,
+//     正否: correctness,
+//     修正カラー: colorCorrections,
+//     修正骨格: bodyCorrections
+//   };
+//   const resp = await fetch(GAS_URL, {
+//     method: 'POST',
+//     mode: 'cors',
+//     headers: { 'Content-Type': 'application/json' },
+//     body: JSON.stringify(payload)
+//   });
+//   const result = await resp.json();
+//   if (result.error) throw new Error(result.error);
+//   return result;
+// }
+
+// // 完了画面
+// function showCompleteScreen() {
+//   document.getElementById('mainScreen').classList.add('hidden');
+//   completeScreen.classList.remove('hidden');
+// }
+
+// // 次バッチ
+// async function loadNextBatch() {
+//   currentBatch++;
+//   completeScreen.classList.add('hidden');
+//   document.getElementById('mainScreen').classList.remove('hidden');
+//   await loadData();
+//   displayCurrentCard();
+// }
+
+// // アプリ起動
+// window.addEventListener('load', initialize);
